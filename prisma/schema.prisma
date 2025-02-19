@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String           @id @default(cuid())
+  name            String
+  email           String           @unique
+  analyses        AnalysisResult[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model AnalysisResult {
+  id                 String              @id @default(cuid())
+  userId             String
+  imageUrl           String
+  analysisData       Json
+  metadata           Json
+  compositionAnalysis CompositionAnalysis?
+  colorAnalysis      ColorAnalysis?
+  techniqueAnalysis  TechniqueAnalysis?
+  recommendations    Recommendation[]
+  feedback           AnalysisFeedback[]
+  user               User                @relation(fields: [userId], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model CompositionAnalysis {
+  id               String         @id @default(cuid())
+  analysisId       String         @unique
+  hierarchy        Json
+  balance          Json
+  rhythm           Json
+  unity           Json
+  designPrinciples Json
+  analysis         AnalysisResult @relation(fields: [analysisId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model ColorAnalysis {
+  id            String         @id @default(cuid())
+  analysisId    String         @unique
+  distribution  Json
+  harmony       Json
+  contrast      Json
+  palette       Json
+  analysis      AnalysisResult @relation(fields: [analysisId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model TechniqueAnalysis {
+  id                 String         @id @default(cuid())
+  analysisId         String         @unique
+  detectedTechniques Json
+  materialAnalysis   Json
+  applicationMethods Json
+  qualityMetrics     Json
+  analysis           AnalysisResult @relation(fields: [analysisId], references: [id])
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model Recommendation {
+  id          String         @id @default(cuid())
+  analysisId  String
+  principle   String
+  issue       String
+  suggestion  String
+  priority    String?
+  analysis    AnalysisResult @relation(fields: [analysisId], references: [id])
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model AnalysisFeedback {
+  id          String         @id @default(cuid())
+  analysisId  String
+  rating      Int
+  comments    String?
+  categories  String[]
+  analysis    AnalysisResult @relation(fields: [analysisId], references: [id])
+  createdAt   DateTime       @default(now())
+}
+
+model TrainingData {
+  id          String    @id @default(cuid())
+  imageUrl    String
+  labels      Json
+  metadata    Json
+  validated   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ModelVersion {
+  id           String    @id @default(cuid())
+  version      String    @unique
+  modelType    String
+  performance  Json
+  trainedOn    DateTime
+  active       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
