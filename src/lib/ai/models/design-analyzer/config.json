@@ -1,0 +1,84 @@
+{
+  "model_name": "design_analyzer_v2",
+  "version": "2.0.0",
+  "architecture": {
+    "base_model": "vision_transformer",
+    "image_size": 512,
+    "patch_size": 16,
+    "hidden_size": 768,
+    "num_heads": 12,
+    "num_layers": 12,
+    "mlp_dim": 3072,
+    "dropout": 0.1
+  },
+  "training": {
+    "batch_size": 32,
+    "learning_rate": 1e-4,
+    "warmup_steps": 10000,
+    "max_steps": 100000,
+    "weight_decay": 0.01,
+    "optimizer": {
+      "type": "adamw",
+      "beta1": 0.9,
+      "beta2": 0.999,
+      "epsilon": 1e-8
+    }
+  },
+  "analysis_modules": {
+    "composition": {
+      "enabled": true,
+      "features": [
+        "hierarchy",
+        "balance",
+        "rhythm",
+        "unity",
+        "proportion",
+        "emphasis",
+        "movement",
+        "pattern"
+      ]
+    },
+    "color": {
+      "enabled": true,
+      "features": [
+        "harmony",
+        "contrast",
+        "temperature",
+        "saturation",
+        "value",
+        "palette",
+        "relationships"
+      ]
+    },
+    "technique": {
+      "enabled": true,
+      "features": [
+        "medium",
+        "style",
+        "brushwork",
+        "texture",
+        "precision",
+        "consistency",
+        "layering",
+        "blending"
+      ]
+    }
+  },
+  "augmentation": {
+    "enabled": true,
+    "techniques": [
+      "random_resize",
+      "random_crop",
+      "color_jitter",
+      "random_flip",
+      "gaussian_noise"
+    ]
+  },
+  "inference": {
+    "batch_size": 1,
+    "device": "cuda",
+    "precision": "float16",
+    "threshold": 0.5,
+    "max_objects": 50
+  }
+}
