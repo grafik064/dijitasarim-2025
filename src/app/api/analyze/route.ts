@@ -1,71 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DesignAnalyzer } from '@/lib/ai/design-analyzer';
-import sharp from 'sharp';
-import { prisma } from '@/lib/prisma';
-import { saveAnalysisResult } from '@/lib/database';
+import path from 'path';
+import { writeFile } from 'fs/promises';
+import { analyzeDesign } from '@/lib/design-analyzer';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const formData = await req.formData();
+    const formData = await request.formData();
     const file = formData.get('file') as File;
-    const userId = formData.get('userId') as string;
-    const config = JSON.parse(formData.get('config') as string);
 
     if (!file) {
       return NextResponse.json(
-        { error: 'Dosya yüklenemedi' },
+        { error: 'Lütfen bir tasarım dosyası yükleyin.' },
         { status: 400 }
       );
     }
 
-    // Görüntüyü işle
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const image = await sharp(buffer)
-      .resize(800, 800, { fit: 'inside' })
-      .toFormat('png')
-      .toBuffer();
+    // Dosya formatını kontrol et
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: 'Sadece JPG, PNG ve GIF formatları desteklenir.' },
+        { status: 400 }
+      );
+    }
 
-    // Analiz et
-    const analyzer = new DesignAnalyzer();
-    const imageData = await createImageData(image);
-    const analysis = await analyzer.analyzeDesign(imageData, config);
+    // Dosya boyutunu kontrol et (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'Dosya boyutu 10MB\'dan küçük olmalıdır.' },
+        { status: 400 }
+      );
+    }
 
-    // Sonuçları kaydet
-    const savedAnalysis = await saveAnalysisResult({
-      userId,
-      imageUrl: `/uploads/${file.name}`,
-      analysis,
-      metadata: {
-        filename: file.name,
-        fileSize: file.size,
-        mimeType: file.type,
-        analyzedAt: new Date()
-      }
-    });
+    // Dosyayı geçici olarak kaydet
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = path.join(uploadDir, fileName);
+
+    await writeFile(filePath, buffer);
+
+    // Tasarım analizini gerçekleştir
+    const analysis = await analyzeDesign(filePath);
+
+    // Analiz sonuçlarını döndür
     return NextResponse.json({
       success: true,
-      analysis: savedAnalysis
+      fileName,
+      analysis,
+      preview: `/uploads/${fileName}`
     });
 
   } catch (error) {
     console.error('Analiz hatası:', error);
     return NextResponse.json(
-      { error: 'Analiz sırasında bir hata oluştu' },
+      { error: 'Tasarım analizi sırasında bir hata oluştu.' },
       { status: 500 }
     );
   }
-}
-
-async function createImageData(buffer: Buffer): Promise<ImageData> {
-  const { width, height } = await sharp(buffer).metadata();
-  const pixels = await sharp(buffer)
-    .raw()
-    .toBuffer();
-
-  return {
-    data: new Uint8ClampedArray(pixels),
-    width: width!,
-    height: height!
-  };
 }
